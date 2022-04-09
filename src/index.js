@@ -1,5 +1,6 @@
 import dotenv from 'dotenv'
 import { Client, Intents} from 'discord.js'
+import {ChannelStatesHelper} from "./helpers/ChannelStatesHelper.js";
 
 dotenv.config()
 
@@ -28,10 +29,12 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.on('voiceStateUpdate',(oldState, newState) =>{
-    if(oldState.channelId === null && newState.channelId !== null){
-        console.log(oldState.member.displayName)
-    }
+    //if (ChannelStatesHelper.joinedChannel())
+
+
 })
+
+
 
 client.login(process.env.DISCORD_TOKEN).then(()=>{
     console.log('logged in!')
