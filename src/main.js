@@ -1,12 +1,14 @@
 import dotenv from 'dotenv'
 import { Client, Intents} from 'discord.js'
 import {ChannelStatesHelper} from "./helpers/ChannelStatesHelper.js";
+import {Connector} from "./database/Connector.js";
 
 dotenv.config()
 
 const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_PRESENCES]})
-let users = []
+let database = new Connector()
 client.once('ready', ()=>{
+    database.tables.forEach(table => table.sync())
     console.log('ready!')
 })
 
@@ -27,13 +29,15 @@ client.on('interactionCreate', async interaction => {
         await interaction.reply('User info.');
     }
 });
+
 let onlineTimeStamp
 let onlineTime = 0
 let fromAFK = false
-client.on('voiceStateUpdate',(oldState, newState) =>{
+client.on('voiceStateUpdate',async (oldState, newState) =>{
 
     if (ChannelStatesHelper.joinedServer(oldState, newState)  && !ChannelStatesHelper.toAFK(oldState, newState)){
         console.log(`${newState.member.displayName} joined Server at channel ${newState.channel.name} record time start`)
+        await database.createNewUser(newState.member.displayName, newState.member.id)
         onlineTimeStamp = Date.now()
     }
     else if (ChannelStatesHelper.leftServer(oldState, newState) || ChannelStatesHelper.leftServer(oldState, newState) && ChannelStatesHelper.fromAFK(oldState, newState) ){
