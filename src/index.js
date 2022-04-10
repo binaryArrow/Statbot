@@ -41,6 +41,7 @@ client.on('voiceStateUpdate',(oldState, newState) =>{
         if(!fromAFK)
             onlineTime += Date.now() - onlineTimeStamp
         console.log(`time spend on server: ${onlineTime/1000} seconds`)
+        fromAFK = false
     }
     else if (ChannelStatesHelper.movedChannel(oldState, newState) && ChannelStatesHelper.toAFK(oldState, newState)){
         console.log(`${newState.member.displayName} entered AFK channel ${newState.channel.name} record time stop`)
