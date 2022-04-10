@@ -27,14 +27,32 @@ client.on('interactionCreate', async interaction => {
         await interaction.reply('User info.');
     }
 });
-
+let onlineTimeStamp
+let onlineTime = 0
+let fromAFK = false
 client.on('voiceStateUpdate',(oldState, newState) =>{
-    //if (ChannelStatesHelper.joinedChannel())
 
-
+    if (ChannelStatesHelper.joinedServer(oldState, newState)  && !ChannelStatesHelper.toAFK(oldState, newState)){
+        console.log(`${newState.member.displayName} joined Server at channel ${newState.channel.name} record time start`)
+        onlineTimeStamp = Date.now()
+    }
+    else if (ChannelStatesHelper.leftServer(oldState, newState) || ChannelStatesHelper.leftServer(oldState, newState) && ChannelStatesHelper.fromAFK(oldState, newState) ){
+        console.log(`${oldState.member.displayName} leaved Server record time stop`)
+        if(!fromAFK)
+            onlineTime += Date.now() - onlineTimeStamp
+        console.log(`time spend on server: ${onlineTime/1000} seconds`)
+    }
+    else if (ChannelStatesHelper.movedChannel(oldState, newState) && ChannelStatesHelper.toAFK(oldState, newState)){
+        console.log(`${newState.member.displayName} entered AFK channel ${newState.channel.name} record time stop`)
+        fromAFK = true
+        onlineTime += Date.now() - onlineTimeStamp
+    }
+    else if (ChannelStatesHelper.movedChannel(oldState, newState) && ChannelStatesHelper.fromAFK(oldState, newState)){
+        console.log(`${newState.member.displayName} leaved AFK channel ${newState.channel.name} record time start`)
+        fromAFK = false
+        onlineTimeStamp = Date.now()
+    }
 })
-
-
 
 client.login(process.env.DISCORD_TOKEN).then(()=>{
     console.log('logged in!')
