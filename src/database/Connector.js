@@ -1,7 +1,6 @@
 import {Sequelize, where} from "sequelize";
 import {Users} from "./models/Users.js";
 import {Logger} from "../logger/Logger.js";
-import {CalculationsHelper} from "../helpers/CalculationsHelper.js";
 
 export class Connector {
     logger = new Logger().logger
@@ -31,10 +30,10 @@ export class Connector {
                 }
             }).then(([user, isNew]) => {
                 if (!afkState)
-                    this.setOnlineTimestampOfUser(userId, userName, Date.now())
+                    this.setOnlineTimestampOfUser(userId, Date.now())
                 if (isNew)
                     this.logger.info(`${user.username} was created`)
-                else {
+                else if (!isNew) {
                     table.update({from_afk: afkState}, {where: {userId: userId}})
                 }
                 this.logger.info(`${user.username} already exists`)
@@ -49,16 +48,13 @@ export class Connector {
             const table = this.tables.find(table => table.name === 'users')
             let oldOnlineTime
             let onlineTimeStamp
-            let fromAfk
             table.findOne({where: {userId: userId}}).then((record) => {
                 oldOnlineTime = record.online_time
                 onlineTimeStamp = record.online_timestamp
-                fromAfk = record.from_afk
                 if (oldOnlineTime === null)
                     oldOnlineTime = 0
-                if (!fromAfk)
-                    oldOnlineTime += Date.now() - onlineTimeStamp
-                table.update({online_time: oldOnlineTime, from_afk: false}, {
+                oldOnlineTime += Date.now() - onlineTimeStamp
+                table.update({online_time: oldOnlineTime}, {
                     where: {userId: userId}
                 }).then(user => {
                     this.logger.info(`${user.username} online time changed`)
@@ -69,16 +65,33 @@ export class Connector {
             this.logger.error(e)
         }
     }
-
-    async setOnlineTimestampOfUser(userId, userName, onlineTimestamp) {
+    async getUser(userId){
+        const table = this.tables.find(table => table.name === 'users')
         try {
-            this.tables.find(table => table.name === 'users').update({online_timestamp: onlineTimestamp}, {
-                where: {userId: userId}
-            }).then(() => {
-                this.logger.info(`${userName} online timestamp changed`)
-            })
+            return await table.findOne({where: {userId: userId}})
         } catch (e) {
             this.logger.error(e)
+        }
+    }
+
+    async getAllUserStats(){
+        const table = this.tables.find(table => table.name === 'users')
+        return await table.findAll()
+    }
+
+    async setUserFromAfkProperty(userId, value){
+        const table = this.tables.find(table => table.name === 'users')
+        const exists = await table.findOne({where: {userId: userId}})
+        if(exists)
+            return table.update({from_afk: value}, {where: {userId: userId}})
+        return null
+    }
+
+    async setOnlineTimestampOfUser(userId, onlineTimestamp) {
+        const table = this.tables.find(table => table.name === 'users')
+        const exists = await table.findOne({where: {userId: userId}})
+        if(exists){
+            return table.update({online_timestamp: onlineTimestamp}, {where: {userId: userId}})
         }
     }
 }
